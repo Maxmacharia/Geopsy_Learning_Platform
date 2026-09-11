@@ -9,8 +9,7 @@ export default function Footer() {
         {/* Brand column */}
         <div>
           <div className="flex items-center gap-2 text-surface font-bold text-base mb-3">
-            <Globe className="w-5 h-5 text-ring" />
-            <span>GeoPsy</span>
+            <img src="/geopsy-logo.png" alt="GeoPsy" className="h-6 w-auto bg-surface rounded px-1.5 py-1" />
           </div>
           <p className="text-sm leading-relaxed">
             GIS capacity building for tertiary institutions across Kenya.

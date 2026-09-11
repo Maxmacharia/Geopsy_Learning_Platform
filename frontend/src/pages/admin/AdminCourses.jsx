@@ -17,19 +17,17 @@ export default function AdminCourses() {
   const [saving, setSaving]       = useState(false)
 
   useEffect(() => {
-    // 1. Fetch Courses
+    // Fetch Courses
     coursesApi.list({ limit: 50 })
       .then((res) => {
-        // Handles both wrapped Axios responses or direct interceptor outputs safely
         setCourses(res.data?.items || res.items || []);
       })
       .catch((err) => console.error("Failed to load admin courses:", err));
 
-    // 2. Fetch Categories (Matching your working public/Courses.jsx logic exactly)
+    // Fetch Categories
     coursesApi.categories()
       .then((res) => {
-        // Safely falls back to res if your API layer unwraps the axios response automatically
-        const cleanData = res.data || res;
+        const cleanData = res.data?.items || res.data || res;
         setCategories(Array.isArray(cleanData) ? cleanData : []);
       })
       .catch((err) => console.error("Failed to load admin categories:", err))
@@ -42,17 +40,11 @@ export default function AdminCourses() {
     e.preventDefault()
     setSaving(true)
     try {
-      await coursesApi.create(form)
-    
-      // 1. Reset the form input fields
+      const { data } = await coursesApi.create(form)
+      setCourses(prev => [data, ...prev])
       setForm({ title: '', description: '', category: '', difficulty: 'beginner', is_published: false })
       setShowForm(false)
       toast.success('Course created!')
-
-      // 2. Fresh re-fetch to pull the entire list with correct table fields
-      const res = await coursesApi.list({ limit: 50 })
-      setCourses(res.data?.items || res.items || [])
-
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to create course')
     }

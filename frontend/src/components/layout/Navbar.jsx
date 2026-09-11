@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { Globe, Menu, X, BookOpen, User, LogOut, LayoutDashboard, Shield, ChevronDown } from 'lucide-react'
+import { Globe, Menu, X, BookOpen, User, LogOut, LayoutDashboard, Shield, ChevronDown, ClipboardList } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 
 export default function Navbar() {
@@ -44,8 +44,8 @@ export default function Navbar() {
           onClick={handleNavClick}
           className="flex items-center gap-2 font-bold text-ring text-base tracking-tight flex-shrink-0"
         >
-          <Globe className="w-5 h-5" />
-          <span>GeoPsy</span>
+          <img src="/geopsy-logo.png" alt="GeoPsy" className="h-7 w-auto" />
+          <span className="sr-only">GeoPsy</span>
           <span className="hidden sm:inline text-ink/50 font-normal text-sm">Learning Platform</span>
         </Link>
 
@@ -124,6 +124,9 @@ export default function Navbar() {
                     <Link to="/progress"  onClick={handleNavClick} className="dropdown-item">
                       <LayoutDashboard className="w-4 h-4 text-muted flex-shrink-0" /> Progress
                     </Link>
+                    <Link to="/my-quizzes" onClick={handleNavClick} className="dropdown-item">
+                      <ClipboardList className="w-4 h-4 text-muted flex-shrink-0" /> My Quizzes
+                    </Link>
 
                     <div className="border-t border-border mt-1 pt-1">
                       <button onClick={handleLogout} className="dropdown-item-danger w-full">
@@ -196,6 +199,7 @@ export default function Navbar() {
               <NavLink to="/profile"   onClick={handleNavClick} className="block px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-surface-raised hover:text-ink transition-colors">Profile</NavLink>
               <NavLink to="/bookmarks" onClick={handleNavClick} className="block px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-surface-raised hover:text-ink transition-colors">Bookmarks</NavLink>
               <NavLink to="/progress"  onClick={handleNavClick} className="block px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-surface-raised hover:text-ink transition-colors">Progress</NavLink>
+              <NavLink to="/my-quizzes" onClick={handleNavClick} className="block px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-surface-raised hover:text-ink transition-colors">My Quizzes</NavLink>
               {user.role === 'admin' && (
                 <NavLink to="/admin" onClick={handleNavClick} className="block px-3 py-2.5 rounded-lg text-sm font-medium text-ring hover:bg-ring-light transition-colors">Admin Panel</NavLink>
               )}

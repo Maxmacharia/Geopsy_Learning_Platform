@@ -34,8 +34,7 @@ export default function Login() {
         {/* Brand header */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 text-ring font-bold text-xl mb-4">
-            <Globe className="w-6 h-6" />
-            <span>GeoPsy Learning Platform</span>
+            <img src="/geopsy-logo.png" alt="GeoPsy Learning Platform" className="h-9 w-auto" />
           </Link>
           <h1 className="heading-2 mt-2">Welcome back</h1>
           <p className="text-muted text-sm mt-1">Sign in to continue learning</p>

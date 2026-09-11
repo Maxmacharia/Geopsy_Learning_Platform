@@ -82,6 +82,10 @@ class CourseCreate(BaseModel):
     category: Optional[str] = None
     difficulty: str = "beginner"
     is_published: bool = False
+    price: float = 0.0
+    order_index: int = 0
+    prerequisite_id: Optional[str] = None
+    max_retakes: int = 3
 
 
 class CourseUpdate(BaseModel):
@@ -91,6 +95,10 @@ class CourseUpdate(BaseModel):
     difficulty: Optional[str] = None
     is_published: Optional[bool] = None
     thumbnail_url: Optional[str] = None
+    price: Optional[float] = None
+    order_index: Optional[int] = None
+    prerequisite_id: Optional[str] = None
+    max_retakes: Optional[int] = None
 
 
 class CourseListItem(BaseModel):

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Boolean, DateTime, Text, Integer, ForeignKey, JSON
+from sqlalchemy import String, Boolean, DateTime, Text, Integer, ForeignKey, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
@@ -24,6 +24,10 @@ class Course(Base):
     difficulty: Mapped[str] = mapped_column(String(20), default="beginner")  # beginner | intermediate | advanced
     thumbnail_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    price: Mapped[float] = mapped_column(Float, default=0.0)                  # 0 = free
+    order_index: Mapped[int] = mapped_column(Integer, default=0)               # progression order
+    prerequisite_id: Mapped[str | None] = mapped_column(String, ForeignKey("courses.id", ondelete="SET NULL"), nullable=True)
+    max_retakes: Mapped[int] = mapped_column(Integer, default=3)               # 0 = unlimited
     created_by: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -72,11 +76,19 @@ class Resource(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     lesson_id: Mapped[str] = mapped_column(String, ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    type: Mapped[str] = mapped_column(String(30), nullable=False)  # pdf | geojson | pptx | link | image | dataset
+    type: Mapped[str] = mapped_column(String(30), nullable=False)
+    # pdf | geojson | pptx | link | image | dataset | video | zip |
+    # python | r_script | notebook | markdown | sql | shapefile | geopackage | raster | code_snippet
     file_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     external_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     download_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Added for code/notebook viewer support — all nullable, no impact on existing rows
+    language: Mapped[str | None] = mapped_column(String(30), nullable=True)       # python | r | sql | json | markdown
+    code_content: Mapped[str | None] = mapped_column(Text, nullable=True)          # inline-pasted snippet body
+    metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)         # CRS, feature count, etc. for GIS datasets
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     lesson = relationship("Lesson", back_populates="resources")

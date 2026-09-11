@@ -25,7 +25,14 @@ export default function AdminMaps() {
   // Load all courses
   useEffect(() => {
     coursesApi.list({ limit: 50 })
-      .then(({ data }) => setCourses(data.items))
+      .then(({ data }) => {
+        const courseList = Array.isArray(data) ? data : (data.items || data.courses || [])
+        setCourses(courseList)
+      })
+      .catch(err => {
+        console.error('Failed to load courses:', err)
+        toast.error('Could not load courses list')
+      })
   }, [])
 
   // When course selected, load its lessons

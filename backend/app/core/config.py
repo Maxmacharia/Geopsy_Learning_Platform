@@ -28,9 +28,25 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:5173"
     BACKEND_CORS_ORIGINS: str = '["http://localhost:5173","http://localhost:3000"]'
 
+    # ── M-Pesa / Safaricom Daraja ───────────────────────────────────────────
+    MPESA_CONSUMER_KEY: str = ""
+    MPESA_CONSUMER_SECRET: str = ""
+    MPESA_SHORTCODE: str = ""          # Till or Paybill number
+    MPESA_PASSKEY: str = ""            # Lipa Na M-Pesa passkey
+    MPESA_ENV: str = "sandbox"         # sandbox | production
+    MPESA_CALLBACK_URL: str = ""       # public HTTPS URL for Daraja callbacks
+    MPESA_ACCOUNT_REF: str = "GeoPsy"
+    MPESA_TRANSACTION_DESC: str = "GeoPsy Course Fee"
+
     @property
     def cors_origins(self) -> List[str]:
         return json.loads(self.BACKEND_CORS_ORIGINS)
+
+    @property
+    def daraja_base_url(self) -> str:
+        if self.MPESA_ENV == "production":
+            return "https://api.safaricom.co.ke"
+        return "https://sandbox.safaricom.co.ke"
 
     class Config:
         env_file = ".env"

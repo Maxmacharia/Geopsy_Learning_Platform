@@ -1,0 +1,8 @@
+.spinner-pulse {
+  animation: geopsy-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes geopsy-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.97); }
+  50%      { opacity: 1;    transform: scale(1); }
+}

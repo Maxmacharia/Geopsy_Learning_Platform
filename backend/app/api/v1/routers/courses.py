@@ -4,7 +4,6 @@ from sqlalchemy import func
 from typing import Optional
 from math import ceil
 import re
-import uuid
 
 from app.core.dependencies import get_db, get_current_user, require_admin, get_optional_user
 from app.models.user import User
@@ -45,7 +44,7 @@ def list_categories(db: Session = Depends(get_db)):
 @router.get("", response_model=PaginatedCourses)
 def list_courses(
     page: int = Query(1, ge=1),
-    limit: int = Query(12, ge=1, le=100),
+    limit: int = Query(12, ge=1, le=50),
     search: Optional[str] = None,
     category: Optional[str] = None,
     difficulty: Optional[str] = None,
@@ -126,6 +125,46 @@ def create_course(body: CourseCreate, db: Session = Depends(get_db), admin: User
     db.commit()
     db.refresh(course)
     return CourseDetail(**course_to_list_item(course), modules=[])
+
+
+@router.get("/{course_id}/full")
+def get_course_by_id_admin(
+    course_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Admin-only: fetch course by UUID (not slug) with full module/lesson detail."""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(404, "Course not found")
+    modules_out = []
+    for m in sorted(course.modules, key=lambda x: x.order_index):
+        lessons_out = []
+        for l in sorted(m.lessons, key=lambda x: x.order_index):
+            resources_out = [ResourceOut(
+                id=r.id, title=r.title, type=r.type, file_url=r.file_url,
+                external_url=r.external_url, file_size_bytes=r.file_size_bytes,
+                download_count=r.download_count,
+            ) for r in l.resources]
+            lessons_out.append(LessonFull(
+                id=l.id, title=l.title, content_preview=l.content_preview,
+                content=l.content, is_gated=l.is_gated, order_index=l.order_index,
+                resources=resources_out, embedded_maps=l.embedded_maps,
+            ))
+        modules_out.append(ModuleOut(
+            id=m.id, title=m.title, description=m.description,
+            order_index=m.order_index, lessons=lessons_out,
+        ))
+    return {
+        "id": course.id, "title": course.title, "slug": course.slug,
+        "description": course.description, "category": course.category,
+        "difficulty": course.difficulty, "is_published": course.is_published,
+        "price": getattr(course, "price", 0.0),
+        "order_index": getattr(course, "order_index", 0),
+        "prerequisite_id": getattr(course, "prerequisite_id", None),
+        "max_retakes": getattr(course, "max_retakes", 3),
+        "modules": modules_out,
+    }
 
 
 @router.patch("/{course_id}", response_model=CourseListItem)
@@ -236,3 +275,144 @@ def update_progress(lesson_id: str, percent: float, db: Session = Depends(get_db
         db.add(rp)
     db.commit()
     return {"ok": True}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXTENDED COURSE/MODULE/LESSON CRUD (preserves all existing endpoints above)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import uuid
+
+# ── Module CRUD ───────────────────────────────────────────────────────────────
+
+@router.patch("/modules/{module_id}")
+def update_module(
+    module_id: str,
+    body: ModuleCreate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    module = db.query(Module).filter(Module.id == module_id).first()
+    if not module:
+        raise HTTPException(404, "Module not found")
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(module, k, v)
+    db.commit()
+    db.refresh(module)
+    return ModuleOut(id=module.id, title=module.title,
+                     description=module.description, order_index=module.order_index, lessons=[])
+
+
+@router.delete("/modules/{module_id}", status_code=204)
+def delete_module(
+    module_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    module = db.query(Module).filter(Module.id == module_id).first()
+    if not module:
+        raise HTTPException(404, "Module not found")
+    db.delete(module)
+    db.commit()
+
+
+@router.post("/modules/reorder")
+def reorder_modules(
+    course_id: str,
+    ordered_ids: list[str],
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Set order_index for modules based on position in ordered_ids list."""
+    for i, mid in enumerate(ordered_ids):
+        m = db.query(Module).filter(Module.id == mid, Module.course_id == course_id).first()
+        if m:
+            m.order_index = i
+    db.commit()
+    return {"ok": True}
+
+
+# ── Lesson CRUD extensions ────────────────────────────────────────────────────
+
+@router.delete("/lessons/{lesson_id}", status_code=204)
+def delete_lesson(
+    lesson_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(404, "Lesson not found")
+    db.delete(lesson)
+    db.commit()
+
+
+@router.post("/modules/{module_id}/lessons/reorder")
+def reorder_lessons(
+    module_id: str,
+    ordered_ids: list[str],
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Set order_index for lessons based on position in ordered_ids list."""
+    for i, lid in enumerate(ordered_ids):
+        l = db.query(Lesson).filter(Lesson.id == lid, Lesson.module_id == module_id).first()
+        if l:
+            l.order_index = i
+    db.commit()
+    return {"ok": True}
+
+
+# ── Enrollment-aware lesson access ────────────────────────────────────────────
+
+@router.get("/lessons/{lesson_id}/full")
+def get_lesson_enrolled(
+    lesson_id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_user),
+):
+    """
+    Returns full lesson content only for enrolled learners (or admins).
+    Unauthenticated and non-enrolled users get preview only.
+    This supplements the existing get_lesson endpoint with enrollment enforcement.
+    """
+    from app.models.enrollment import Enrollment
+    lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(404, "Lesson not found")
+
+    has_full_access = False
+    if current_user:
+        if current_user.role == "admin":
+            has_full_access = True
+        else:
+            # Check enrollment via lesson -> module -> course
+            module = db.query(Module).filter(Module.id == lesson.module_id).first()
+            if module:
+                enrollment = db.query(Enrollment).filter(
+                    Enrollment.user_id == current_user.id,
+                    Enrollment.course_id == module.course_id,
+                    Enrollment.status.in_(["enrolled", "in_progress", "retake_allowed", "passed", "completed"]),
+                ).first()
+                if enrollment:
+                    has_full_access = True
+
+    if has_full_access:
+        resources = [ResourceOut(
+            id=r.id, title=r.title, type=r.type, file_url=r.file_url,
+            external_url=r.external_url, file_size_bytes=r.file_size_bytes,
+            download_count=r.download_count,
+        ) for r in lesson.resources]
+        return LessonFull(
+            id=lesson.id, title=lesson.title,
+            content_preview=lesson.content_preview, content=lesson.content,
+            is_gated=lesson.is_gated, order_index=lesson.order_index,
+            resources=resources, embedded_maps=lesson.embedded_maps,
+        )
+    else:
+        return LessonFull(
+            id=lesson.id, title=lesson.title,
+            content_preview=lesson.content_preview, content=None,
+            is_gated=lesson.is_gated, order_index=lesson.order_index,
+            resources=[], embedded_maps=[],
+        )

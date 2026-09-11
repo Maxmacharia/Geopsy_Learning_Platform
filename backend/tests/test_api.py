@@ -1,53 +1,20 @@
 """
 Basic test suite for Geopsy API.
 Run with:  pytest tests/ -v
+
+DB setup, the `get_db` override, and the `client` fixture all live in
+conftest.py and are shared across test files in this directory.
 """
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from app.main import app
-from app.db.base import Base
-from app.db.session import SessionLocal
-from app.core.dependencies import get_db
-
-# Use an in-memory SQLite DB for tests
-SQLITE_URL = "sqlite:///./test.db"
-engine_test = create_engine(SQLITE_URL, connect_args={"check_same_thread": False})
-TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine_test)
-
-
-def override_get_db():
-    db = TestingSession()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(scope="module", autouse=True)
-def setup_db():
-    Base.metadata.create_all(bind=engine_test)
-    yield
-    Base.metadata.drop_all(bind=engine_test)
-    import os
-    if os.path.exists("test.db"):
-        os.remove("test.db")
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
+from app.core.security import hash_password, create_access_token
 
 
 @pytest.fixture
 def registered_user(client):
+    import uuid
+    unique_email = f"test-{uuid.uuid4().hex[:8]}@geopsy.co.ke"
     resp = client.post("/api/v1/auth/register", json={
-        "email": "test@geopsy.co.ke",
+        "email": unique_email,
         "full_name": "Test User",
         "password": "Test1234!",
         "institution": "Test University",
@@ -64,19 +31,19 @@ def auth_headers(registered_user):
 def admin_headers(client):
     """Create an admin user directly and get tokens."""
     from app.models.user import User
-    from app.core.security import hash_password, create_access_token
+    from tests.conftest import TestingSession
+    import uuid
     db = TestingSession()
-    admin = db.query(User).filter(User.email == "admin@test.co.ke").first()
-    if not admin:
-        admin = User(
-            email="admin@test.co.ke",
-            full_name="Admin",
-            hashed_password=hash_password("Admin1234!"),
-            role="admin",
-        )
-        db.add(admin)
-        db.commit()
-        db.refresh(admin)
+    email = f"admin-{uuid.uuid4().hex[:8]}@test.co.ke"
+    admin = User(
+        email=email,
+        full_name="Admin",
+        hashed_password=hash_password("Admin1234!"),
+        role="admin",
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
     token = create_access_token(admin.id, "admin")
     db.close()
     return {"Authorization": f"Bearer {token}"}
@@ -105,8 +72,9 @@ def test_register(client):
 
 
 def test_register_duplicate_email(client, registered_user):
+    me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {registered_user['access_token']}"}).json()
     resp = client.post("/api/v1/auth/register", json={
-        "email": "test@geopsy.co.ke",
+        "email": me["email"],
         "full_name": "Dup",
         "password": "Test1234!",
     })
@@ -138,7 +106,7 @@ def test_login_wrong_password(client):
 def test_get_me(client, auth_headers):
     resp = client.get("/api/v1/auth/me", headers=auth_headers)
     assert resp.status_code == 200
-    assert resp.json()["email"] == "test@geopsy.co.ke"
+    assert "@geopsy.co.ke" in resp.json()["email"]
 
 
 def test_get_me_unauthenticated(client):
@@ -175,11 +143,9 @@ def test_create_course_as_admin(client, admin_headers):
     data = resp.json()
     assert data["title"] == "GIS Fundamentals Test"
     assert "slug" in data
-    return data
 
 
 def test_get_course_by_slug(client, admin_headers):
-    # Create first
     create_resp = client.post("/api/v1/courses", json={
         "title": "Slug Test Course",
         "difficulty": "intermediate",
@@ -245,5 +211,9 @@ def test_analytics_overview(client, admin_headers):
     resp = client.get("/api/v1/analytics/overview", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
-    assert "total_students" in data
-    assert "total_courses" in data
+    # New comprehensive analytics returns nested structure
+    assert "students" in data
+    assert "total" in data["students"]
+    assert "content" in data
+    assert "enrollments" in data
+    assert "certificates" in data

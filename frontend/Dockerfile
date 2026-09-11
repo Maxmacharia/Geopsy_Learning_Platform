@@ -1,18 +1,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
-
-# Copy package files first to leverage Docker's cache layer
 COPY package*.json ./
-
-# Install dependencies inside the container
 RUN npm ci
-
-# Copy the rest of the application source code
 COPY . .
-
-# Now this will find 'vite' and succeed
 RUN npm run build
-
 
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html

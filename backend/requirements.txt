@@ -17,3 +17,9 @@ email-validator==2.1.1
 python-dotenv==1.0.1
 geoalchemy2==0.15.1
 shapely==2.0.4
+
+# Assessment / certification additions
+reportlab==4.2.0
+qrcode[pil]==7.4.2
+pygments==2.18.0
+nbformat==5.10.4
