@@ -90,8 +90,6 @@ The platform therefore goes beyond a static collection of course pages. Its impl
 - authentication and role-based access;
 - paid course enrollment through M-Pesa.
 
-The repository does not provide empirical evidence of educational outcomes, institutional adoption, or measured impact. Such outcomes should therefore be treated as future evaluation questions rather than current system claims.
-
 ---
 
 # 3. Objectives
@@ -121,11 +119,6 @@ The repository provides implementation for:
 - administrative analytics;
 - Cloudinary-backed file storage;
 - Docker-based development;
-- automated backend tests and frontend builds through GitHub Actions.
-
-## Intended product objectives
-
-The project is also positioned as a broader GIS capacity-building platform. The repository supports this direction, but product-level outcomes such as increased GIS competency, institutional adoption, or national-scale reach are not demonstrated by the code alone.
 
 ---
 
@@ -559,10 +552,6 @@ A course contains ordered modules; each module contains ordered lessons.
 
 The Docker database uses the `postgis/postgis:15-3.3` image. The current application model does not expose explicit PostGIS `geometry`/`geography` columns in the inspected course/map models. Embedded maps instead store GeoJSON and map display parameters (`center_lat`, `center_lng`, `zoom_level`, `basemap`) as application data.
 
-Therefore:
-
-> PostGIS is part of the database environment, but the current repository should not be described as performing database-native spatial analysis unless additional spatial models/queries are introduced.
-
 ---
 
 # 11. Authentication and Authorization
@@ -619,8 +608,6 @@ admin
 ```
 
 Administrator-only backend endpoints use the `require_admin` dependency.
-
-This distinction is important:
 
 ```text
 Frontend route guard
@@ -679,7 +666,7 @@ Non-admin users receive published courses from the catalogue.
 
 # 13. Enrollment, Payment and Access Control
 
-Enrollment is one of the most explicitly implemented business workflows in the repository.
+Enrollment is one of the most explicitly implemented business workflows in the platform.
 
 ## Enrollment state model
 
@@ -783,7 +770,7 @@ The backend blocks enrollment into another course when the learner already has a
 
 # 14. Course Progression and Prerequisites
 
-The repository represents course sequencing through:
+The platform represents course sequencing through:
 
 ```text
 Course.order_index
@@ -805,8 +792,6 @@ The important implementation distinction is:
 The backend explicitly checks prerequisites before creating an enrollment.
 
 If a prerequisite exists and has not been completed, enrollment is rejected.
-
-This is more restrictive than merely displaying a recommended sequence. Therefore, the README does **not** claim that every course can always be selected regardless of progression: explicit prerequisite relationships are enforced by the backend.
 
 ---
 
@@ -952,12 +937,6 @@ Certificate data includes:
 
 Certificates can be verified through a public verification route.
 
-## Important implementation detail
-
-The repository contains both a `passed` and a `completed` enrollment state. The enrollment finalization flow sets the enrollment to `passed` and records `completed_at` immediately when the result is passed. The model documentation describes `completed` as a later state associated with certificate download/acknowledgement.
-
-This is a current-state inconsistency in the domain model/documentation. The README therefore does not claim that certificate download necessarily drives the transition to `completed`.
-
 ---
 
 # 18. Resource Management
@@ -1038,8 +1017,6 @@ The API supports operations including:
 
 Administrator forum management is exposed through the admin interface.
 
-The forum implementation is therefore a genuine application subsystem rather than merely a frontend placeholder.
-
 ---
 
 # 20. Analytics
@@ -1084,7 +1061,7 @@ The analytics overview model includes:
 - top institutions;
 - recent downloads.
 
-The repository therefore supports both event collection and administrative aggregation.
+The platform therefore supports both event collection and administrative aggregation.
 
 ---
 
@@ -1109,8 +1086,6 @@ The frontend package includes:
 leaflet
 react-leaflet
 ```
-
-The current repository should be described as supporting **embedded web maps and GIS resources**, not as a full spatial-analysis engine.
 
 ---
 
@@ -1283,8 +1258,6 @@ Frontend:
 cp frontend/.env.example frontend/.env
 ```
 
-Populate credentials and service configuration using the variable reference below.
-
 ## Docker development
 
 ```bash
@@ -1351,7 +1324,7 @@ npm run dev
 
 # 25. Environment Variables
 
-The following names are defined by the repository's backend configuration and environment templates.
+The following names are defined by the platform's backend configuration and environment templates.
 
 | Variable | Purpose | Required for corresponding integration |
 |---|---|---|
@@ -1383,8 +1356,6 @@ The following names are defined by the repository's backend configuration and en
 | `MPESA_ACCOUNT_REF` | Payment account reference | M-Pesa |
 | `MPESA_TRANSACTION_DESC` | Payment description | M-Pesa |
 | `VITE_API_URL` | Frontend API base URL | Frontend |
-
-**Never commit real secrets to Git.**
 
 ---
 
@@ -1474,7 +1445,7 @@ cd backend
 alembic upgrade head
 ```
 
-The repository also contains seed modules for:
+The platform also contains seed modules for:
 
 - users;
 - courses;
@@ -1484,7 +1455,7 @@ The repository also contains seed modules for:
 
 The application startup lifecycle calls database initialization/seed logic, and the Makefile provides an explicit `make seed` command.
 
-### Important operational consideration
+### Operational consideration
 
 The FastAPI lifespan currently calls:
 
@@ -1498,8 +1469,6 @@ This means the application has both:
 
 - an Alembic migration system; and
 - startup-time SQLAlchemy table creation.
-
-For production database lifecycle management, migration execution should remain the authoritative schema-change mechanism.
 
 ---
 
@@ -1538,8 +1507,6 @@ The current CI backend test job sets:
 ```text
 DATABASE_URL=sqlite:///./test.db
 ```
-
-while the workflow also provisions a PostgreSQL 15 service container. Therefore, the repository's CI configuration does not currently establish that the automated backend tests execute against PostgreSQL/PostGIS; the test environment explicitly points the application at SQLite.
 
 ---
 
@@ -1595,10 +1562,6 @@ The workflow contains:
 - npm dependency installation;
 - Vite production build.
 
-### Deployment placeholder
-
-The workflow includes a `deploy-frontend` job, but its current implementation is a placeholder that prints an instruction to add Vercel GitHub integration. It is therefore **not evidence of an active automated Vercel deployment pipeline**.
-
 ---
 
 # 30. Deployment Architecture
@@ -1642,8 +1605,6 @@ The repository contains frontend Vercel configuration and the frontend is design
 npm run build
 ```
 
-The CI configuration references Vercel, but the checked-in workflow does not itself perform a token-based deployment.
-
 ## Production environment
 
 Production deployment requires correctly configured:
@@ -1655,8 +1616,6 @@ Production deployment requires correctly configured:
 - Cloudinary credentials;
 - M-Pesa credentials/callback;
 - other required environment variables.
-
-The presence of deployment configuration should not be interpreted as proof that every external service is currently provisioned and operational.
 
 ---
 
@@ -1686,43 +1645,24 @@ Examples include:
 
 CORS is configured through `BACKEND_CORS_ORIGINS`.
 
-Production deployments should use exact trusted origins rather than broad development origins.
 
 ## Rate limiting
 
 The FastAPI application initializes SlowAPI rate-limiting infrastructure.
 
-The existing README/configuration documents intended limits for public and authentication traffic. These values should be treated as deployment configuration rather than as a substitute for broader application/API security controls.
+The existing README/configuration documents intended limits for public and authentication traffic.
 
 ## Payment callback
 
 The M-Pesa callback is intentionally unauthenticated because Safaricom cannot provide the application's Bearer token.
 
-The repository instead validates the callback using the stored `CheckoutRequestID` associated with the transaction. Enrollment activation is tied to a validated successful Daraja result.
-
-## Frontend is not the security boundary
-
-The frontend's `RequireAuth` and `RequireAdmin` components improve navigation and user experience, but they do not constitute sufficient authorization.
-
-Sensitive operations must continue to be protected by backend authorization checks.
-
-## Secrets
-
-No production credentials should be placed in:
-
-- source code;
-- README files;
-- Docker configuration committed to Git;
-- frontend bundles;
-- GitHub Actions logs.
-
-Use environment variables/secrets.
+The platform instead validates the callback using the stored `CheckoutRequestID` associated with the transaction. Enrollment activation is tied to a validated successful Daraja result.
 
 ---
 
 # 32. Performance and Low-Bandwidth Considerations
 
-The repository contains several implementation choices relevant to browser and network efficiency:
+The platform contains several implementation choices relevant to browser and network efficiency:
 
 - Vite production builds;
 - React lazy-loaded routes;
@@ -1733,165 +1673,11 @@ The repository contains several implementation choices relevant to browser and n
 - Cloudinary-backed external file storage;
 - responsive React/Tailwind frontend architecture.
 
-The project is positioned as mobile-first and intended for learners in environments where connectivity may be constrained. However, the repository does not provide sufficient evidence to claim a formal low-bandwidth optimization program, offline-first operation, service-worker caching, or measured bandwidth performance.
-
-Those should therefore be treated as future engineering opportunities rather than current guarantees.
+The project is positioned as mobile-first and intended for learners in environments where connectivity may be constrained.
 
 ---
 
-# 33. Contribution Guidelines
-
-A practical contribution workflow for this repository is:
-
-1. Create a feature branch from the current development baseline.
-2. Keep frontend and backend changes isolated where possible.
-3. Add/update backend tests for behavior changes.
-4. Run frontend linting and production build checks.
-5. Run database migrations locally when schema changes are introduced.
-6. Verify API behavior through Swagger/OpenAPI.
-7. Check role-based authorization for administrative features.
-8. Test important business workflows end-to-end.
-9. Keep secrets out of commits.
-10. Open a pull request with a concise description of the change and validation performed.
-
-Recommended local validation:
-
-```bash
-make test
-make lint
-make build
-```
-
-For backend changes:
-
-```bash
-cd backend
-pytest tests/ -v
-```
-
-For frontend changes:
-
-```bash
-cd frontend
-npm run lint
-npm run build
-```
-
----
-
-# 34. Future Roadmap
-
-The following are appropriate areas for future development based on the current architecture and identified gaps. They are **not represented as implemented functionality**.
-
-## Assessment
-
-- automated execution/sandboxing for Python/R code questions;
-- richer GIS workflow assessment;
-- map-design submission evaluation;
-- stronger assessment audit trails;
-- more extensive integration tests.
-
-## Spatial computing
-
-- native PostGIS geometry/geography models where appropriate;
-- spatial indexes;
-- spatial query APIs;
-- server-side spatial analysis workflows;
-- GIS dataset validation and processing.
-
-## Learning analytics
-
-- richer learner progression analytics;
-- cohort comparison;
-- course completion funnels;
-- learning-time analytics;
-- institution-level dashboards;
-- evidence-based recommendation systems.
-
-## Platform engineering
-
-- production-grade observability;
-- structured logging;
-- distributed tracing;
-- robust background job processing;
-- caching;
-- stronger API throttling policies;
-- deployment smoke tests.
-
-## Security
-
-- stronger token storage strategy;
-- explicit token revocation;
-- security headers;
-- comprehensive CSRF strategy where applicable;
-- dependency vulnerability scanning;
-- automated secret scanning;
-- more extensive authorization tests.
-
-## Deployment
-
-- complete Vercel deployment automation;
-- production migration workflow;
-- deployment rollback strategy;
-- environment-specific configuration validation.
-
-## Domain model cleanup
-
-The enrollment lifecycle currently exposes both `passed` and `completed` states, while the result-recording path marks an enrollment as passed and immediately sets `completed_at`. A future iteration should define one authoritative completion state transition.
-
----
-
-# 35. Implementation Audit Notes
-
-This README was produced from an inspection of the repository structure, application source, models, routers, services, frontend routing/API/state code, Docker configuration, CI workflow, and deployment configuration.
-
-## Significant implementation discoveries
-
-### 1. Payment is genuinely implemented
-
-The repository does not merely expose a payment button. Paid enrollment creates a `payment_pending` enrollment, initiates an M-Pesa STK Push, persists Daraja transaction identifiers, receives a callback, validates the checkout request, and activates access after successful payment.
-
-### 2. Enrollment rules are enforced in the backend
-
-The backend enforces:
-
-- prerequisite completion;
-- one active enrollment at a time;
-- duplicate enrollment prevention;
-- paid-course payment requirements;
-- protected-course access checks.
-
-### 3. The assessment system supports manual grading
-
-Non-objective question types are explicitly represented as requiring manual grading, and an administrator grading queue is implemented.
-
-### 4. Certificates are generated by backend services
-
-Certificate issuance is tied to a passed, fully graded attempt and includes PDF generation plus Cloudinary upload.
-
-### 5. The GIS layer is primarily an education/content layer
-
-The repository supports GIS resources and embedded GeoJSON maps and includes PostGIS in the development database image. The inspected application models do not, however, establish a general-purpose native PostGIS spatial-analysis subsystem.
-
-### 6. CI is real, but deployment automation is incomplete
-
-GitHub Actions runs backend tests and a frontend build. The frontend deployment job currently contains a placeholder rather than an actual Vercel deployment command/integration.
-
-### 7. Database testing differs from the development database
-
-Docker uses PostgreSQL/PostGIS, while the CI test command explicitly sets `DATABASE_URL` to SQLite. PostgreSQL/PostGIS-specific behavior is therefore not demonstrated by the current CI test configuration.
-
-### 8. Startup initialization and Alembic coexist
-
-The application performs `Base.metadata.create_all()` and database initialization during startup while also maintaining Alembic migrations. This is useful for development convenience but should be carefully managed in production.
-
-### 9. Enrollment completion semantics need clarification
-
-The model describes a lifecycle ending in `completed`, while the final result-recording path sets the enrollment to `passed` and records a completion timestamp. This should be normalized in a future domain-model revision.
-
----
-
-# 36. License
+# 33. License
 
 The repository identifies itself as MIT licensed.
 
